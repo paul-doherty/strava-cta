@@ -124,9 +124,6 @@ Once you have obtained these tokens, set them as environment variables or GitHub
 ```bash
 # Install dependencies
 uv sync
-
-# Run tests
-pytest
 ```
 
 ### Project Structure
