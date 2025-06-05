@@ -89,9 +89,8 @@ class StravaActivityChecker:
                 else:
                     print(f"Activity {detailed_activity.id} already contains CTA content.")
         except Exception as e:
-            print(f"Error processing activities: {e}")
             logger.error(f"Error processing activities: {e}")
-            return 1
+            return None
         logger.info(f"Checked {count} activities for CTA content.")
         
         access_token = client.access_token
@@ -115,6 +114,16 @@ def main():
     access_token = args.access_token or os.environ.get("STRAVA_ACCESS_TOKEN")
     refresh_token = args.refresh_token or os.environ.get("STRAVA_REFRESH_TOKEN")
     token_expires = args.token_expires or os.environ.get("STRAVA_TOKEN_EXPIRES_AT")
+    
+    if not access_token:
+        logger.error("Access token is required. Please provide it via --access-token or STRAVA_ACCESS_TOKEN environment variable.")
+        return 1
+    if not refresh_token:
+        logger.error("Refresh token is required. Please provide it via --refresh-token or STRAVA_REFRESH_TOKEN environment variable.")
+        return 1
+    if not token_expires:
+        logger.error("Token expiration time is required. Please provide it via --token-expires or STRAVA_TOKEN_EXPIRES_AT environment variable.")
+        return 1
 
     cta = Cta().get_cta_content()
     if not cta:
@@ -124,7 +133,7 @@ def main():
         return 1
 
     checker = StravaActivityChecker()
-    updated_tokens = checker.update_activities(access_token, refresh_token, token_expires)
+    updated_tokens = checker.update_activities(access_token, refresh_token, float(token_expires))
     
     if updated_tokens:
         gh_access_token, gh_refresh_token, gh_token_expires = updated_tokens
