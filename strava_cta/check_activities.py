@@ -13,6 +13,7 @@ logging.getLogger("stravalib").setLevel(logging.ERROR)
 logging.getLogger("requests").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 
+
 class Cta:
     def get_cta_content(self):
         """
@@ -37,10 +38,7 @@ class StravaActivityChecker:
         """
         self.cta = Cta().get_cta_content()
 
-    def contains_cta(self, activity):
-        return self.cta in activity.description
-
-    def prepend_cta(self, activity):
+    def update_description_if_needed(self, activity):
         """
         Prepend the CTA content to the activity description if it doesn't already contain it.
 
@@ -50,8 +48,15 @@ class StravaActivityChecker:
         Returns:
             str: Updated activity description with CTA prepended
         """
-        activity.description = f"{self.cta}\n\n{activity.description}"
-        return activity
+        if activity.description is None:
+            activity.description = f"{self.cta}"
+            return activity, True
+        else:
+            if self.cta in activity.description:
+                return activity, False
+            else:
+                activity.description = f"{self.cta}\n\n{activity.description}"
+                return activity, True
 
     def update_activities(self, access_token, refresh_token=None, token_expires=None):
         """
@@ -73,26 +78,30 @@ class StravaActivityChecker:
         today_midnight_utc = datetime.datetime.now(datetime.timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-        
+
         count = 0
         try:
             for activity in client.get_activities(after=today_midnight_utc):
                 count += 1
                 detailed_activity = client.get_activity(activity.id)
-                if not self.contains_cta(detailed_activity):
-                    detailed_activity = self.prepend_cta(detailed_activity)
+                detailed_activity, updated = self.update_description_if_needed(
+                    detailed_activity
+                )
+                if updated:
                     client.update_activity(
                         activity_id=detailed_activity.id,
                         description=detailed_activity.description,
                     )
                     print(f"Activity {detailed_activity.id} updated.")
                 else:
-                    print(f"Activity {detailed_activity.id} already contains CTA content.")
+                    print(
+                        f"Activity {detailed_activity.id} already contains CTA content."
+                    )
         except Exception as e:
             logger.error(f"Error processing activities: {e}")
             return None
         logger.info(f"Checked {count} activities for CTA content.")
-        
+
         access_token = client.access_token
         refresh_token = client.refresh_token
         token_expires = client.token_expires
@@ -114,15 +123,21 @@ def main():
     access_token = args.access_token or os.environ.get("STRAVA_ACCESS_TOKEN")
     refresh_token = args.refresh_token or os.environ.get("STRAVA_REFRESH_TOKEN")
     token_expires = args.token_expires or os.environ.get("STRAVA_TOKEN_EXPIRES_AT")
-    
+
     if not access_token:
-        logger.error("Access token is required. Please provide it via --access-token or STRAVA_ACCESS_TOKEN environment variable.")
+        logger.error(
+            "Access token is required. Please provide it via --access-token or STRAVA_ACCESS_TOKEN environment variable."
+        )
         return 1
     if not refresh_token:
-        logger.error("Refresh token is required. Please provide it via --refresh-token or STRAVA_REFRESH_TOKEN environment variable.")
+        logger.error(
+            "Refresh token is required. Please provide it via --refresh-token or STRAVA_REFRESH_TOKEN environment variable."
+        )
         return 1
     if not token_expires:
-        logger.error("Token expiration time is required. Please provide it via --token-expires or STRAVA_TOKEN_EXPIRES_AT environment variable.")
+        logger.error(
+            "Token expiration time is required. Please provide it via --token-expires or STRAVA_TOKEN_EXPIRES_AT environment variable."
+        )
         return 1
 
     cta = Cta().get_cta_content()
@@ -133,8 +148,10 @@ def main():
         return 1
 
     checker = StravaActivityChecker()
-    updated_tokens = checker.update_activities(access_token, refresh_token, float(token_expires))
-    
+    updated_tokens = checker.update_activities(
+        access_token, refresh_token, float(token_expires)
+    )
+
     if updated_tokens:
         gh_access_token, gh_refresh_token, gh_token_expires = updated_tokens
         # Update GitHub secrets if running in GitHub Actions
@@ -142,13 +159,15 @@ def main():
             try:
                 os.system(f'gh secret set STRAVA_ACCESS_TOKEN -b "{gh_access_token}"')
                 os.system(f'gh secret set STRAVA_REFRESH_TOKEN -b "{gh_refresh_token}"')
-                os.system(f'gh secret set STRAVA_TOKEN_EXPIRES_AT -b "{gh_token_expires}"')
+                os.system(
+                    f'gh secret set STRAVA_TOKEN_EXPIRES_AT -b "{gh_token_expires}"'
+                )
                 logger.info("Updated GitHub secrets with new Strava tokens.")
             except Exception as e:
                 logger.error(f"Error updating GitHub secrets: {e}")
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='cta.log', level=logging.INFO)
+    logging.basicConfig(filename="cta.log", level=logging.INFO)
     logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
     sys.exit(main())
