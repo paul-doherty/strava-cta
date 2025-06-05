@@ -140,11 +140,8 @@ def main():
         # Update GitHub secrets if running in GitHub Actions
         if os.environ.get("GITHUB_ACTIONS") == "true":
             try:
-                # Update access token using -b flag
                 os.system(f'gh secret set STRAVA_ACCESS_TOKEN -b "{gh_access_token}"')
-                # Update refresh token using -b flag
                 os.system(f'gh secret set STRAVA_REFRESH_TOKEN -b "{gh_refresh_token}"')
-                # Update token expiration using -b flag
                 os.system(f'gh secret set STRAVA_TOKEN_EXPIRES_AT -b "{gh_token_expires}"')
                 logger.info("Updated GitHub secrets with new Strava tokens.")
             except Exception as e:
