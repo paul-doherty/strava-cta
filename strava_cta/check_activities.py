@@ -139,10 +139,16 @@ def main():
         gh_access_token, gh_refresh_token, gh_token_expires = updated_tokens
         # Update GitHub secrets if running in GitHub Actions
         if os.environ.get("GITHUB_ACTIONS") == "true":
-            os.system(f"gh secret set STRAVA_ACCESS_TOKEN {gh_access_token}")
-            os.system(f"gh secret set STRAVA_REFRESH_TOKEN {gh_refresh_token}")
-            os.system(f"gh secret set STRAVA_TOKEN_EXPIRES_AT {gh_token_expires}")
-            logger.info("Updated GitHub secrets with new Strava tokens.")
+            try:
+                # Update access token using -b flag
+                os.system(f'gh secret set STRAVA_ACCESS_TOKEN -b "{gh_access_token}"')
+                # Update refresh token using -b flag
+                os.system(f'gh secret set STRAVA_REFRESH_TOKEN -b "{gh_refresh_token}"')
+                # Update token expiration using -b flag
+                os.system(f'gh secret set STRAVA_TOKEN_EXPIRES_AT -b "{gh_token_expires}"')
+                logger.info("Updated GitHub secrets with new Strava tokens.")
+            except Exception as e:
+                logger.error(f"Error updating GitHub secrets: {e}")
 
 
 if __name__ == "__main__":
