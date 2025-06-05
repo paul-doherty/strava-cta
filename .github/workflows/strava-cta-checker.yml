@@ -6,13 +6,6 @@ on:
     - cron: '*/5 7-22 * * *'
   workflow_dispatch:
     # Allow manual triggering
-    inputs:
-      repo_owner:
-        description: 'GitHub repository owner (defaults to current repository owner)'
-        required: false
-      repo_name:
-        description: 'GitHub repository name (defaults to current repository name)'
-        required: false
 
 env:
   UV_VERSION: "0.6.14"
