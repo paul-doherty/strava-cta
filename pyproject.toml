@@ -1,0 +1,14 @@
+[project]
+name = "strava-cta"
+version = "0.1.0"
+description = "A tool to automatically check and update Strava activities with a CTA"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "schedule",
+    "pytest",
+    "pytest-mock",
+    "stravalib",
+    "pynacl"
+]

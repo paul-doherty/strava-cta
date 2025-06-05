@@ -1,0 +1,39 @@
+name: Strava CTA Checker
+
+on:
+  schedule:
+    # Run every 5 minutes between 7am and 10pm UTC
+    - cron: '*/5 7-22 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+    inputs:
+      repo_owner:
+        description: 'GitHub repository owner (defaults to current repository owner)'
+        required: false
+      repo_name:
+        description: 'GitHub repository name (defaults to current repository name)'
+        required: false
+
+env:
+  UV_VERSION: "0.6.14"
+
+jobs:
+  check-strava-activities:
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for GitHub CLI to update secrets
+      contents: read
+      actions: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Setup dependencies
+        run: uv sync --frozen
+      - name: Check for Strava activities
+        run: |
+          uv run python -m strava_cta.check_activities
